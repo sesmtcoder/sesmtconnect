@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+body {
+  background-color: #f8f7f4;
+}
+
+.font-serif {
+  font-family: var(--font-serif), serif;
+}
