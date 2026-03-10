@@ -193,13 +193,24 @@ export default function Page() {
 
   useEffect(() => {
     // Check for existing session on load
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error('Erro ao recuperar sessão:', error.message);
+        // If there's an error (like invalid refresh token), clear the session
+        supabase.auth.signOut();
+        setIsAuthenticated(false);
+        return;
+      }
+
       const session = data.session;
       setIsAuthenticated(!!session);
       if (session?.user?.email) {
         fetchUserInfo(session.user.email, session.user.user_metadata);
         fetchSupabaseData();
       }
+    }).catch(err => {
+      console.error('Erro inesperado na sessão:', err);
+      setIsAuthenticated(false);
     });
 
     // Listen for auth state changes
