@@ -10,6 +10,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,19 +18,40 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
     setIsLoading(true);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      if (isRegistering) {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: email.split('@')[0], // Default name from email
+            }
+          }
+        });
 
-      if (authError) {
-        setError('E-mail ou senha incorretos. Por favor, tente novamente.');
-        console.error('Erro de autenticação:', authError.message);
-      } else if (data.user) {
-        onLogin();
+        if (signUpError) {
+          setError(signUpError.message === 'User already registered'
+            ? 'Este e-mail já está cadastrado. Tente entrar.'
+            : signUpError.message);
+        } else if (data.user) {
+          setError('Cadastro realizado! Por favor, entre com suas credenciais.');
+          setIsRegistering(false);
+        }
+      } else {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (authError) {
+          setError('E-mail ou senha incorretos. Por favor, tente novamente.');
+          console.debug('Auth info:', authError.message);
+        } else if (data.user) {
+          onLogin();
+        }
       }
     } catch (err) {
-      setError('Ocorreu um erro ao tentar entrar no sistema.');
+      setError('Ocorreu um erro ao tentar processar sua solicitação.');
       console.error('Erro inesperado:', err);
     } finally {
       setIsLoading(false);
@@ -87,7 +109,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600"
+                className={`flex items-center gap-2 rounded-lg p-3 text-sm ${error.includes('sucesso') || error.includes('Cadastro') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}
               >
                 <AlertCircle className="h-4 w-4" />
                 <span>{error}</span>
@@ -102,15 +124,24 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  <span>Autenticando...</span>
+                  <span>{isRegistering ? 'Cadastrando...' : 'Autenticando...'}</span>
                 </div>
               ) : (
-                <span>Entrar no Sistema</span>
+                <span>{isRegistering ? 'Criar Conta' : 'Entrar no Sistema'}</span>
               )}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-4">
+            <button
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setError('');
+              }}
+              className="text-sm font-medium text-[#1241a1] hover:underline"
+            >
+              {isRegistering ? 'Já tem uma conta? Entre aqui' : 'Não tem uma conta? Cadastre-se'}
+            </button>
             <p className="text-xs text-slate-400">
               Esqueceu sua senha? Entre em contato com o administrador do sistema.
             </p>
