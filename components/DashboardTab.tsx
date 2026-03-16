@@ -188,6 +188,15 @@ export default function DashboardTab({
             <Shield className="h-6 w-6" />
           </div>
         </div>
+        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Demandas Abertas</p>
+            <p className="text-3xl font-bold text-slate-900">{(processes || []).filter(p => !p.isArchived).length}</p>
+          </div>
+          <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

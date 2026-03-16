@@ -4,6 +4,7 @@ export type InventoryItem = {
   id: string;
   name: string;
   ca: string;
+  codMv: string;
   category: string;
   unit: string;
   stock: number;
@@ -91,6 +92,8 @@ export type ProcessDocument = {
   name: string;
   date: string;
   size: string;
+  url?: string;
+  filePath?: string;
 };
 
 export type LegalProcess = {
@@ -105,4 +108,5 @@ export type LegalProcess = {
   status: string;
   documents: ProcessDocument[];
   tasks: ProcessTask[];
+  isArchived: boolean;
 };

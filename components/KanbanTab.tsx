@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, MessageSquare, Clock, Calendar, CheckCircle2, Circle, ArrowRightCircle, AlertTriangle, AlertCircle, X, Send } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { ServiceTask, TaskStatus, TaskComment } from '@/lib/data';
 import type { ToastType } from './Toast';
 
@@ -15,10 +16,17 @@ const PRIORITY_COLORS = {
 };
 
 const COLUMN_COLORS = {
-    'A Fazer': 'bg-slate-50 border-slate-200',
-    'Em Andamento': 'bg-blue-50 border-blue-200',
-    'Em Revisão': 'bg-purple-50 border-purple-200',
-    'Concluído': 'bg-emerald-50 border-emerald-200'
+    'A Fazer': 'bg-[#F1F5F9] border-slate-200',
+    'Em Andamento': 'bg-[#E0F2FE] border-blue-200',
+    'Em Revisão': 'bg-[#F3E8FF] border-purple-200',
+    'Concluído': 'bg-[#DCFCE7] border-emerald-200'
+};
+
+const COLUMN_TEXT_COLORS = {
+    'A Fazer': 'text-slate-600',
+    'Em Andamento': 'text-blue-700',
+    'Em Revisão': 'text-purple-700',
+    'Concluído': 'text-emerald-700'
 };
 
 export default function KanbanTab({
@@ -130,57 +138,73 @@ export default function KanbanTab({
                     const columnTasks = tasks.filter(t => t.status === column);
                     return (
                         <div key={column} className={`flex w-80 flex-shrink-0 flex-col rounded-xl border p-4 ${COLUMN_COLORS[column]}`}>
-                            <div className="mb-4 flex items-center justify-between">
-                                <h3 className="font-bold text-slate-800">{column}</h3>
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-bold text-slate-600 shadow-sm">
-                                    {columnTasks.length}
-                                </span>
+                            <div className="mb-4 flex items-center justify-between px-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className={`text-xs font-black uppercase tracking-widest ${COLUMN_TEXT_COLORS[column]}`}>{column}</h3>
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-white/60 text-[10px] font-bold text-slate-500 shadow-sm backdrop-blur-sm">
+                                        {columnTasks.length}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setIsNewTaskModalOpen(true)}
+                                    className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </button>
                             </div>
 
                             <div className="flex flex-col gap-3">
                                 {columnTasks.map(task => (
-                                    <div
+                                    <motion.div
+                                        layout
                                         key={task.id}
                                         onClick={() => setViewingTask(task)}
-                                        className="group cursor-pointer rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-[#1241a1]/50 hover:shadow-md"
+                                        className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-[#1241a1]/40 hover:shadow-lg hover:shadow-slate-200/50"
                                     >
-                                        <div className="mb-2 flex items-start justify-between">
-                                            <span className={`inline-block rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${PRIORITY_COLORS[task.priority]}`}>
+                                        <div className="mb-3 flex items-start justify-between">
+                                            <span className={`inline-block rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter ${PRIORITY_COLORS[task.priority]}`}>
                                                 {task.priority}
                                             </span>
-                                        </div>
-                                        <h4 className="mb-2 font-bold leading-tight text-slate-900 line-clamp-2">{task.title}</h4>
-                                        <div className="flex items-center justify-between text-xs text-slate-500">
-                                            <div className="flex items-center gap-1.5" title="Prazo">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                {new Date(task.dueDate).toLocaleDateString('pt-BR')}
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                                <Calendar className="h-3 w-3" />
+                                                {new Date(task.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                                             </div>
-                                            {task.comments.length > 0 && (
-                                                <div className="flex items-center gap-1.5" title="Comentários">
-                                                    <MessageSquare className="h-3.5 w-3.5" />
-                                                    {task.comments.length}
+                                        </div>
+
+                                        <h4 className="mb-3 text-sm font-bold leading-snug text-slate-800 line-clamp-2">{task.title}</h4>
+
+                                        <div className="flex items-center justify-between border-t border-slate-50 pt-3">
+                                            <div className="flex items-center gap-3">
+                                                {task.comments.length > 0 && (
+                                                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400" title="Comentários">
+                                                        <MessageSquare className="h-3 w-3" />
+                                                        {task.comments.length}
+                                                    </div>
+                                                )}
+                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
+                                                    {task.assignee?.charAt(0) || '?'}
+                                                </div>
+                                            </div>
+
+                                            {/* Status Transition Action - Optimized as requested */}
+                                            {column !== COLUMNS[COLUMNS.length - 1] && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); moveTaskRight(task); }}
+                                                    className="flex items-center gap-1 rounded-lg bg-[#1241a1]/5 px-2 py-1 text-[10px] font-bold text-[#1241a1] transition-all hover:bg-[#1241a1] hover:text-white"
+                                                    title={`Mover para ${COLUMNS[COLUMNS.indexOf(task.status) + 1]}`}
+                                                >
+                                                    Próximo
+                                                    <ArrowRightCircle className="h-3 w-3" />
+                                                </button>
+                                            )}
+                                            {column === COLUMNS[COLUMNS.length - 1] && (
+                                                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    Finalizado
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* Move controls - shown on hover for quick actions */}
-                                        <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); moveTaskLeft(task); }}
-                                                disabled={column === COLUMNS[0]}
-                                                className="p-1 text-slate-400 hover:text-[#1241a1] disabled:opacity-30"
-                                            >
-                                                <ArrowRightCircle className="h-4 w-4 rotate-180" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); moveTaskRight(task); }}
-                                                disabled={column === COLUMNS[COLUMNS.length - 1]}
-                                                className="p-1 text-slate-400 hover:text-[#1241a1] disabled:opacity-30"
-                                            >
-                                                <ArrowRightCircle className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
+                                    </motion.div>
                                 ))}
 
                                 {columnTasks.length === 0 && (

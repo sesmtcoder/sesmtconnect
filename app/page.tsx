@@ -106,7 +106,7 @@ export default function Page() {
       supabase.from('inventory').select('*'),
       supabase.from('deliveries').select('*'),
       supabase.from('movements').select('*'),
-      supabase.from('processes').select('*, documents:process_documents(*), tasks:process_tasks(*)'),
+      supabase.from('processes').select('*, documents:process_documents(*), tasks:process_tasks(*)')
     ]);
 
     const [workersRes, inventoryRes, deliveriesRes, movementsRes, processesRes] = results;
@@ -130,6 +130,7 @@ export default function Page() {
         id: i.id,
         name: i.name || '',
         ca: i.ca || '',
+        codMv: i.cod_mv || '',
         category: i.category || '',
         unit: i.unit || 'Unidade',
         stock: i.stock || 0,
@@ -180,13 +181,15 @@ export default function Page() {
           name: d.name,
           date: new Date(d.created_at).toLocaleDateString(),
           size: d.file_size || '0 KB',
-          url: d.file_url
+          url: d.file_url,
+          filePath: d.file_path
         })),
         tasks: (p.tasks || []).map((t: any) => ({
           id: t.id,
           title: t.title,
           status: t.status
-        }))
+        })),
+        isArchived: p.is_archived || false
       })));
     }
   }, []);
@@ -225,6 +228,7 @@ export default function Page() {
         setDeliveries([]);
         setInventory([]);
         setMovements([]);
+        setProcesses([]);
         setUserEmail('');
         setUserInitials('--');
       }
@@ -286,7 +290,7 @@ export default function Page() {
     { id: 'workers', label: 'Trabalhadores' },
     { id: 'inventory', label: 'Estoque' },
     { id: 'kanban', label: 'Projetos (ERP)' },
-    { id: 'processes', label: 'Controle de Serviços' },
+    { id: 'processes', label: 'Controle de Serviços' }
   ];
 
   if (isAuthenticated === null) {

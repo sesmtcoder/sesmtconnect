@@ -57,7 +57,7 @@ export default function InventoryTab({
       setFormData(item);
     } else {
       setEditingItem(null);
-      setFormData({ name: '', ca: '', category: '', unit: 'Unidade', stock: 0, minStock: 0, status: 'Estoque OK' });
+      setFormData({ name: '', ca: '', codMv: '', category: '', unit: 'Unidade', stock: 0, minStock: 0, status: 'Estoque OK' });
     }
     setIsModalOpen(true);
   };
@@ -91,6 +91,7 @@ export default function InventoryTab({
             .update({
               name: itemToSave.name,
               ca: itemToSave.ca,
+              cod_mv: itemToSave.codMv,
               category: itemToSave.category,
               unit: itemToSave.unit,
               stock: itemToSave.stock,
@@ -103,6 +104,7 @@ export default function InventoryTab({
           const { data, error } = await supabase.from('inventory').insert([{
             name: itemToSave.name,
             ca: itemToSave.ca,
+            cod_mv: itemToSave.codMv,
             category: itemToSave.category,
             unit: itemToSave.unit,
             stock: itemToSave.stock,
@@ -215,7 +217,8 @@ export default function InventoryTab({
 
   const filteredInventory = inventory.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
-    item.ca.includes(search) ||
+    (item.ca && item.ca.includes(search)) ||
+    (item.codMv && item.codMv.toLowerCase().includes(search.toLowerCase())) ||
     item.category.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -235,10 +238,11 @@ export default function InventoryTab({
       showToast('Nenhum item no inventário para exportar.', 'warning');
       return;
     }
-    const headers = ['Nome', 'CA', 'Categoria', 'Unidade', 'Estoque Atual', 'Mínimo', 'Status'];
+    const headers = ['Nome', 'CA', 'COD.MV', 'Categoria', 'Unidade', 'Estoque Atual', 'Mínimo', 'Status'];
     const rows = filteredInventory.map(item => [
       item.name,
       item.ca,
+      item.codMv,
       item.category,
       item.unit,
       item.stock,
@@ -366,6 +370,8 @@ export default function InventoryTab({
                 <thead>
                   <tr className="bg-slate-50 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     <th className="px-6 py-4">EPI / Material</th>
+                    <th className="px-6 py-4 text-center">COD.MV</th>
+                    <th className="px-6 py-4 text-center">C.A.</th>
                     <th className="px-6 py-4">Quant. Atual</th>
                     <th className="px-6 py-4">Mínimo</th>
                     <th className="px-6 py-4">Status</th>
@@ -380,6 +386,14 @@ export default function InventoryTab({
                           <span className="text-sm font-bold text-slate-900">{item.name}</span>
                           <span className="text-[10px] font-medium uppercase tracking-tight text-slate-500">{item.category}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center text-xs font-mono text-slate-600">
+                        {item.codMv || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                          {item.ca || '-'}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-sm font-bold ${item.stock <= item.minStock ? 'text-red-600' : 'text-slate-900'}`}>
@@ -477,6 +491,28 @@ export default function InventoryTab({
               </button>
             </div>
             <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 uppercase tracking-wider text-[10px] font-bold">COD.MV</label>
+                  <input
+                    placeholder="Ex: MV-001"
+                    type="text"
+                    value={formData.codMv || ''}
+                    onChange={(e) => setFormData({ ...formData, codMv: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus:border-[#1241a1] focus:ring-[#1241a1]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 uppercase tracking-wider text-[10px] font-bold">C.A. (Certificado de Aprovação)</label>
+                  <input
+                    placeholder="Ex: 12345"
+                    type="text"
+                    value={formData.ca || ''}
+                    onChange={(e) => setFormData({ ...formData, ca: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 focus:border-[#1241a1] focus:ring-[#1241a1]"
+                  />
+                </div>
+              </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700 uppercase tracking-wider text-[10px] font-bold">Nome do EPI / Material</label>
                 <input
