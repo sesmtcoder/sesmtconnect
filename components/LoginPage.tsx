@@ -18,6 +18,12 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
     setIsLoading(true);
 
     try {
+      if (password.length < 6) {
+        setError('A senha deve ter pelo menos 6 caracteres.');
+        setIsLoading(false);
+        return;
+      }
+
       if (isRegistering) {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,

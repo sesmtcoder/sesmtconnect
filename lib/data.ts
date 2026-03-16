@@ -4,6 +4,7 @@ export type InventoryItem = {
   id: string;
   name: string;
   ca: string;
+  caValidityDate?: string; // #4 — Validade do CA
   codMv: string;
   category: string;
   unit: string;
@@ -44,6 +45,7 @@ export type Delivery = {
   qty: string;
   responsible: string;
   status: 'Em Uso' | 'Vencendo' | 'Devolvido';
+  validityDate?: string; // #5 — Data de vencimento do EPI
 };
 
 export type TaskComment = {
@@ -63,7 +65,9 @@ export type ServiceTask = {
   dueDate: string;
   priority: 'Baixa' | 'Média' | 'Alta' | 'Urgente';
   comments: TaskComment[];
+  documents: ProcessDocument[];
   assignee?: string;
+  isArchived?: boolean;
   createdAt: string;
 };
 
@@ -109,4 +113,80 @@ export type LegalProcess = {
   documents: ProcessDocument[];
   tasks: ProcessTask[];
   isArchived: boolean;
+};
+
+// ─── #3 — Treinamentos e Capacitações ────────────────────────────────────────
+export type TrainingStatus = 'Válido' | 'Vencendo' | 'Vencido' | 'Pendente';
+
+export type Training = {
+  id: string;
+  name: string;
+  nr: string;
+  workerId: string;
+  workerName: string;
+  date: string;
+  validityMonths: number;
+  validityDate: string;
+  instructor: string;
+  status: TrainingStatus;
+  certificateUrl?: string;
+};
+
+// ─── #2 — Saúde Ocupacional (ASO / PCMSO) ────────────────────────────────────
+export type ASOType = 'Admissional' | 'Periódico' | 'Retorno ao Trabalho' | 'Mudança de Função' | 'Demissional';
+export type ASOStatus = 'Apto' | 'Apto com Restrição' | 'Inapto';
+
+export type HealthRecord = {
+  id: string;
+  workerId: string;
+  workerName: string;
+  type: ASOType;
+  date: string;
+  validityDate: string;
+  doctor: string;
+  crm: string;
+  status: ASOStatus;
+  restrictions?: string;
+  exams: string[];
+};
+
+// ─── #7 — Registro de Acidentes / CAT ────────────────────────────────────────
+export type AccidentType = 'Acidente de Trajeto' | 'Acidente de Trabalho' | 'Doença Ocupacional';
+export type AccidentSeverity = 'Leve' | 'Moderado' | 'Grave' | 'Fatal';
+export type AccidentSituacao = 'Inicial' | 'Retificação' | 'Reabertura';
+
+export type Accident = {
+  id: string;
+  date: string;
+  time: string;
+  workerId: string;
+  workerName: string;
+  type: AccidentType;
+  situacao?: AccidentSituacao;
+  severity: AccidentSeverity;
+  location: string;
+  description: string;
+  bodyPart?: string;
+  daysOff: number;
+  cid?: string;
+  catNumber?: string;
+  catPdfUrl?: string;
+  rootCause?: string;
+  actionPlan?: string;
+  status: 'Aberto' | 'Em Investigação' | 'Concluído';
+  createdAt: string;
+};
+
+
+// ─── #10 — Sistema de Notificações ───────────────────────────────────────────
+export type NotificationType = 'epi_vencido' | 'aso_vencendo' | 'treinamento_vencendo' | 'estoque_critico' | 'servico_prazo' | 'acidente';
+
+export type AppNotification = {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  entityId?: string;
+  isRead: boolean;
+  createdAt: string;
 };

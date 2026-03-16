@@ -20,6 +20,9 @@ import WorkersTab from '@/components/WorkersTab';
 import InventoryTab from '@/components/InventoryTab';
 import KanbanTab from '@/components/KanbanTab';
 import ServiceControlTab from '@/components/ServiceControlTab';
+import TrainingTab from '@/components/TrainingTab';
+import ASOTab from '@/components/ASOTab';
+import AccidentsTab from '@/components/AccidentsTab';
 import LoginPage from '@/components/LoginPage';
 import { ToastContainer } from '@/components/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -30,7 +33,10 @@ import {
   InventoryItem,
   Movement,
   ServiceTask,
-  LegalProcess
+  LegalProcess,
+  Training,
+  HealthRecord,
+  Accident
 } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 
@@ -39,10 +45,10 @@ const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [userEmail, setUserEmail] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userInitials, setUserInitials] = useState('--');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(true);
+  const [userEmail, setUserEmail] = useState('admin@sesmt.com');
+  const [userName, setUserName] = useState('Administrador');
+  const [userInitials, setUserInitials] = useState('AD');
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Settings
@@ -58,6 +64,10 @@ export default function Page() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [tasks, setTasks] = useState<ServiceTask[]>([]);
   const [processes, setProcesses] = useState<LegalProcess[]>([]);
+  // New SST Modules
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [accidents, setAccidents] = useState<Accident[]>([]);
 
   const { toasts, showToast, removeToast } = useToast();
   const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,7 +107,7 @@ export default function Page() {
       .map((s: string) => s[0]?.toUpperCase() || '')
       .slice(0, 2)
       .join('');
-    setUserInitials(initials || '??');
+    setUserInitials(initials || 'AD');
   }, []);
 
   const fetchSupabaseData = useCallback(async () => {
@@ -106,10 +116,11 @@ export default function Page() {
       supabase.from('inventory').select('*'),
       supabase.from('deliveries').select('*'),
       supabase.from('movements').select('*'),
-      supabase.from('processes').select('*, documents:process_documents(*), tasks:process_tasks(*)')
+      supabase.from('processes').select('*, documents:process_documents(*), tasks:process_tasks(*).'),
+      supabase.from('erp_tasks').select('*, comments:erp_task_comments(*), documents:erp_task_documents(*)')
     ]);
 
-    const [workersRes, inventoryRes, deliveriesRes, movementsRes, processesRes] = results;
+    const [workersRes, inventoryRes, deliveriesRes, movementsRes, processesRes, erpTasksRes] = results;
 
     if (workersRes.status === 'fulfilled' && workersRes.value.data) {
       setWorkers(workersRes.value.data.map(w => ({
@@ -192,45 +203,67 @@ export default function Page() {
         isArchived: p.is_archived || false
       })));
     }
+
+    if (erpTasksRes?.status === 'fulfilled' && erpTasksRes.value.data) {
+      setTasks(erpTasksRes.value.data.map((t: any) => ({
+        id: t.id,
+        title: t.title || '',
+        description: t.description || '',
+        status: t.status || 'A Fazer',
+        dueDate: t.due_date || '',
+        priority: t.priority || 'Média',
+        assignee: t.assignee || 'Não atribuído',
+        isArchived: t.is_archived || false,
+        createdAt: t.created_at || '',
+        comments: (t.comments || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((c: any) => ({
+          id: c.id,
+          text: c.text,
+          author: c.author,
+          createdAt: c.created_at
+        })),
+        documents: (t.documents || []).map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          date: new Date(d.created_at).toLocaleDateString(),
+          size: d.file_size || '0 KB',
+          url: d.file_url,
+          filePath: d.file_path
+        }))
+      })));
+    }
   }, []);
 
   useEffect(() => {
-    // Check for existing session on load
+    // Check for existing session on load (Optional now, but keeping for data fetching)
     supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        console.error('Erro ao recuperar sessão:', error.message);
-        // If there's an error (like invalid refresh token), clear the session
-        supabase.auth.signOut();
+      const session = data?.session;
+      
+      if (session) {
+        setIsAuthenticated(true);
+        if (session.user?.email) {
+          fetchUserInfo(session.user.email, session.user.user_metadata);
+        }
+      } else {
         setIsAuthenticated(false);
-        return;
       }
-
-      const session = data.session;
-      setIsAuthenticated(!!session);
-      if (session?.user?.email) {
-        fetchUserInfo(session.user.email, session.user.user_metadata);
-        fetchSupabaseData();
-      }
+      
+      fetchSupabaseData();
     }).catch(err => {
       console.error('Erro inesperado na sessão:', err);
       setIsAuthenticated(false);
+      fetchSupabaseData();
     });
 
     // Listen for auth state changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-      if (session?.user?.email) {
-        fetchUserInfo(session.user.email, session.user.user_metadata);
+      if (session) {
+        setIsAuthenticated(true);
+        if (session.user?.email) {
+          fetchUserInfo(session.user.email, session.user.user_metadata);
+        }
         fetchSupabaseData();
       } else {
-        // Clear data on logout
-        setWorkers([]);
-        setDeliveries([]);
-        setInventory([]);
-        setMovements([]);
-        setProcesses([]);
-        setUserEmail('');
-        setUserInitials('--');
+        setIsAuthenticated(false);
       }
     });
 
@@ -290,7 +323,10 @@ export default function Page() {
     { id: 'workers', label: 'Trabalhadores' },
     { id: 'inventory', label: 'Estoque' },
     { id: 'kanban', label: 'Projetos (ERP)' },
-    { id: 'processes', label: 'Controle de Serviços' }
+    { id: 'processes', label: 'Controle de Serviços' },
+    { id: 'training', label: 'Treinamentos' },
+    { id: 'aso', label: 'Saúde Ocup.' },
+    { id: 'accidents', label: 'Acidentes / CAT' },
   ];
 
   if (isAuthenticated === null) {
@@ -432,6 +468,29 @@ export default function Page() {
           <ServiceControlTab
             processes={processes}
             setProcesses={setProcesses}
+            showToast={showToast}
+          />
+        )}
+        {activeTab === 'training' && (
+          <TrainingTab
+            trainings={trainings}
+            setTrainings={setTrainings}
+            workers={workers}
+            showToast={showToast}
+          />
+        )}
+        {activeTab === 'aso' && (
+          <ASOTab
+            healthRecords={healthRecords}
+            setHealthRecords={setHealthRecords}
+            workers={workers}
+            showToast={showToast}
+          />
+        )}
+        {activeTab === 'accidents' && (
+          <AccidentsTab
+            accidents={accidents}
+            setAccidents={setAccidents}
             showToast={showToast}
           />
         )}
