@@ -43,6 +43,8 @@ import { supabase } from '@/lib/supabase';
 // Inactivity timeout: 60 minutes
 const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 
+export const dynamic = 'force-dynamic';
+
 export default function Page() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(true);
@@ -116,7 +118,7 @@ export default function Page() {
       supabase.from('inventory').select('*'),
       supabase.from('deliveries').select('*'),
       supabase.from('movements').select('*'),
-      supabase.from('processes').select('*, documents:process_documents(*), tasks:process_tasks(*).'),
+      supabase.from('processes').select('*, documents:process_documents(*), tasks:process_tasks(*)'),
       supabase.from('erp_tasks').select('*, comments:erp_task_comments(*), documents:erp_task_documents(*)')
     ]);
 
