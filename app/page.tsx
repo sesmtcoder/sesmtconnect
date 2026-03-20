@@ -47,7 +47,7 @@ export const dynamic = 'force-dynamic';
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState('admin@sesmt.com');
   const [userName, setUserName] = useState('Administrador');
   const [userInitials, setUserInitials] = useState('AD');
